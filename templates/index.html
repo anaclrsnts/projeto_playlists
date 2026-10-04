@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Playlist Engine</title>
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/styles.css') }}"
+  >
+
+  <script
+    defer
+    src="{{ url_for('static', filename='js/app.js') }}"
+  ></script>
+</head>
+
+
+<body>
+
+  <header>
+
+    <a class="brand" href="/">
+      playlist engine
+    </a>
+
+    <div>
+      {% if connected %}
+
+        <span>
+          Spotify conectado
+        </span>
+
+        <button
+          id="logout"
+          class="ghost"
+        >
+          desconectar
+        </button>
+
+      {% else %}
+
+        <a
+          class="ghost"
+          href="/login"
+        >
+          conectar Spotify
+        </a>
+
+      {% endif %}
+    </div>
+
+  </header>
+
+
+  <main>
+
+
+    <!-- HERO -->
+
+    <section class="hero">
+
+      <p class="kicker">
+        music discovery experiment
+      </p>
+
+      <h1>
+        Uma música.<br>
+        Uma vibe inteira.
+      </h1>
+
+      <p>
+        Escolha uma faixa de referência e diga ao algoritmo
+        <em>o que significa parecer com ela</em>.
+      </p>
+
+
+      <form id="searchForm">
+
+        <input
+          id="query"
+          placeholder="Ex.: 505, Arctic Monkeys"
+          required
+        >
+
+        <button>
+          buscar
+        </button>
+
+      </form>
+
+
+      <!-- MATCH MODE -->
+
+      <section id="matchingPanel" class="matching-panel">
+
+        <div class="panel-heading">
+
+          <div>
+            <p class="kicker">
+              comparison model
+            </p>
+
+            <h2>
+              Como devemos comparar?
+            </h2>
+          </div>
+
+          <div class="engine-status">
+
+            <span
+              class="dot {% if vibe_enabled %}active{% endif %}"
+            ></span>
+
+            {% if vibe_enabled %}
+              listening data ready
+            {% else %}
+              listening fallback
+            {% endif %}
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="mode-selector"
+          role="radiogroup"
+          aria-label="Modo de comparação"
+        >
+
+          <button
+            type="button"
+            class="mode-button"
+            data-mode="listening"
+          >
+            <strong>Listening</strong>
+
+            <span>
+              pessoas que ouvem essa faixa também ouvem…
+            </span>
+          </button>
+
+
+          <button
+            type="button"
+            class="mode-button"
+            data-mode="sound"
+          >
+            <strong>Sound</strong>
+
+            <span>
+              músicas que soam parecidas
+            </span>
+          </button>
+
+
+          <button
+            type="button"
+            class="mode-button active"
+            data-mode="hybrid"
+          >
+            <strong>Hybrid</strong>
+
+            <span>
+              mistura comportamento + sonoridade
+            </span>
+          </button>
+
+        </div>
+
+
+        <!-- HYBRID BALANCE -->
+
+        <div
+          id="hybridControls"
+          class="control-block"
+        >
+
+          <div class="control-title">
+            <label for="hybridBalance">
+              prioridade híbrida
+            </label>
+
+            <strong id="hybridBalanceValue">
+              50% listening / 50% sound
+            </strong>
+          </div>
+
+          <div class="balance-labels">
+            <span>listening patterns</span>
+            <span>sound profile</span>
+          </div>
+
+          <input
+            id="hybridBalance"
+            type="range"
+            min="0"
+            max="100"
+            value="50"
+          >
+
+        </div>
+
+
+        <!-- SOUND PROFILE -->
+
+        <div
+          id="soundControls"
+          class="sound-controls"
+        >
+
+          <div class="sound-heading">
+            <div>
+              <h3>
+                O que deve soar mais parecido?
+              </h3>
+
+              <p>
+                Dê mais peso às características que importam
+                para essa playlist.
+              </p>
+            </div>
+
+            <button
+              id="resetSoundWeights"
+              class="text-button"
+              type="button"
+            >
+              reset
+            </button>
+          </div>
+
+
+          <div class="sound-grid">
+
+            <label class="feature-control">
+              <span>
+                <strong>Tempo</strong>
+                <small>BPM / velocidade</small>
+              </span>
+
+              <input
+                data-feature="tempo"
+                type="range"
+                min="0"
+                max="100"
+                value="65"
+              >
+            </label>
+
+
+            <label class="feature-control">
+              <span>
+                <strong>Energy</strong>
+                <small>intensidade / impacto</small>
+              </span>
+
+              <input
+                data-feature="energy"
+                type="range"
+                min="0"
+                max="100"
+                value="100"
+              >
+            </label>
+
+
+            <label class="feature-control">
+              <span>
+                <strong>Mood</strong>
+                <small>valence / clima emocional</small>
+              </span>
+
+              <input
+                data-feature="valence"
+                type="range"
+                min="0"
+                max="100"
+                value="85"
+              >
+            </label>
+
+
+            <label class="feature-control">
+              <span>
+                <strong>Danceability</strong>
+                <small>pulso / movimento</small>
+              </span>
+
+              <input
+                data-feature="danceability"
+                type="range"
+                min="0"
+                max="100"
+                value="75"
+              >
+            </label>
+
+
+            <label class="feature-control">
+              <span>
+                <strong>Acousticness</strong>
+                <small>orgânico ↔ eletrônico</small>
+              </span>
+
+              <input
+                data-feature="acousticness"
+                type="range"
+                min="0"
+                max="100"
+                value="55"
+              >
+            </label>
+
+
+            <label class="feature-control">
+              <span>
+                <strong>Instrumental</strong>
+                <small>vocal ↔ instrumental</small>
+              </span>
+
+              <input
+                data-feature="instrumentalness"
+                type="range"
+                min="0"
+                max="100"
+                value="45"
+              >
+            </label>
+
+          </div>
+
+        </div>
+
+
+        <!-- DIVERSITY -->
+
+        <div class="control-block">
+
+          <div class="control-title">
+
+            <label for="diversity">
+              diversidade de artistas
+            </label>
+
+            <strong id="diversityValue">
+              75%
+            </strong>
+
+          </div>
+
+          <div class="balance-labels">
+            <span>familiar</span>
+            <span>exploratory</span>
+          </div>
+
+          <input
+            id="diversity"
+            type="range"
+            min="0"
+            max="100"
+            value="75"
+          >
+
+        </div>
+
+      </section>
+
+
+      <p
+        id="message"
+        hidden
+      ></p>
+
+    </section>
+
+
+
+    <!-- SEARCH RESULTS -->
+
+    <section
+      id="results"
+      hidden
+    >
+
+      <div class="title">
+
+        <div>
+          <p class="kicker">
+            resultados
+          </p>
+
+          <h2>
+            Escolha a música de referência
+          </h2>
+        </div>
+
+      </div>
+
+      <div
+        id="cards"
+        class="grid"
+      ></div>
+
+    </section>
+
+
+
+    <!-- LOADING -->
+
+    <section
+      id="loading"
+      class="loading-section"
+      hidden
+      aria-live="polite"
+    >
+
+      <div class="loading-orbit">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <p class="kicker">
+        vibe engine
+      </p>
+
+      <h2 id="loadingTitle">
+        finding your vibe…
+      </h2>
+
+      <div class="loading-steps">
+
+        <span data-step="listening">
+          listening patterns
+        </span>
+
+        <span data-step="sound">
+          sound profile
+        </span>
+
+        <span data-step="ranking">
+          ranking candidates
+        </span>
+
+        <span data-step="playlist">
+          building playlist
+        </span>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- PLAYLIST -->
+
+    <section
+      id="playlist"
+      hidden
+    >
+
+      <div class="playlistHead">
+
+        <div>
+
+          <p class="kicker">
+            playlist gerada
+          </p>
+
+          <h2 id="playlistTitle"></h2>
+
+          <p id="why"></p>
+
+        </div>
+
+
+        <div>
+
+          <button
+            id="again"
+            class="ghost"
+          >
+            gerar novamente
+          </button>
+
+          <button id="save">
+            salvar no Spotify
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <article
+        id="seed"
+        class="seed"
+      ></article>
+
+
+      <div class="engine-card">
+
+        <span class="engine-card-label">
+          VIBE ENGINE
+        </span>
+
+        <strong id="engineName">
+          —
+        </strong>
+
+        <p id="engineDescription"></p>
+
+        <div
+          id="engineMeta"
+          class="engine-meta"
+        ></div>
+
+      </div>
+
+
+      <div
+        id="songs"
+        class="songs"
+      ></div>
+
+      <section
+        id="playerPanel"
+        class="player-panel"
+        hidden
+      >
+        <div class="player-panel-head">
+          <div>
+            <p class="kicker">now playing</p>
+            <h3 id="playerTrackTitle">—</h3>
+            <p id="playerTrackArtist"></p>
+          </div>
+
+          <button
+            id="closePlayer"
+            type="button"
+            class="ghost"
+          >
+            close
+          </button>
+        </div>
+
+        <iframe
+          id="spotifyPlayer"
+          title="Spotify track player"
+          src=""
+          width="100%"
+          height="152"
+          frameborder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+        ></iframe>
+      </section>
+
+    </section>
+
+  </main>
+
+
+
+  <!-- SAVE MODAL -->
+
+  <div
+    id="modal"
+    class="modal"
+  >
+
+    <div class="dialog">
+
+      <button
+        id="close"
+        class="x"
+      >
+        ×
+      </button>
+
+      <p class="kicker">
+        salvar no Spotify
+      </p>
+
+      <h2>
+        Finalize sua playlist
+      </h2>
+
+      <form id="saveForm">
+
+        <label>
+          Nome
+
+          <input
+            id="name"
+            value="Playlist Engine"
+            required
+          >
+        </label>
+
+        <label class="check">
+
+          <input
+            id="public"
+            type="checkbox"
+          >
+
+          playlist pública
+
+        </label>
+
+        <p
+          id="saveMsg"
+          hidden
+        ></p>
+
+        <div class="actions">
+
+          <button
+            type="button"
+            id="cancel"
+            class="ghost"
+          >
+            cancelar
+          </button>
+
+          <button type="submit">
+            salvar
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+  <footer>
+    Spotify catalog · Last.fm listening similarity ·
+    ReccoBeats audio features
+  </footer>
+
+</body>
+
+</html>
