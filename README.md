@@ -141,7 +141,6 @@ http://127.0.0.1:5000
 ├── vibe_engine.py
 ├── requirements.txt
 ├── README.md
-├── .env
 ├── scripts
 │   └── analyze_audio.py
 ├── templates/
